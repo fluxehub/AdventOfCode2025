@@ -1,0 +1,3 @@
+[workspace]
+resolver = "3"
+members = ["common", "common/aoc_macro", "day01"]
