@@ -23,19 +23,20 @@ fn count_moves_past_zero(steps: &[i32]) -> i32 {
     steps
         .iter()
         .fold((50, 0), |(dial, zeros), step| {
-            let new_dial = dial + step;
-            let mut new_zeros = zeros;
-            if dial != 0 && new_dial != 0 && dial.signum() != new_dial.signum() {
-                new_zeros += 1;
-            }
-            new_zeros += new_dial.abs() / 100;
-            // edge case: if new_dial is a multiple of 100 and not 0, remove one zero
-            if new_dial != 0 && new_dial % 100 == 0 {
-                new_zeros -= 1;
-            }
-            new_zeros += if new_dial == 0 { 1 } else { 0 };
             let new_dial = (dial + step).rem_euclid(100);
-            (new_dial, new_zeros)
+            let to_reach_zero = if dial == 0 {
+                100
+            } else if *step > 0 {
+                100 - dial
+            } else {
+                dial
+            };
+            let remainder_step = step.abs() - to_reach_zero;
+            if remainder_step < 0 {
+                (new_dial, zeros) // Didn't cross zero this time
+            } else {
+                (new_dial, zeros + 1 + remainder_step / 100)
+            }
         })
         .1
 }
