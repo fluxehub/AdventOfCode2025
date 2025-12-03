@@ -11,7 +11,7 @@ fn get_ids(input: &str) -> Result<Vec<u64>> {
             Ok(start..=end)
         })
         .flatten_ok()
-        .collect::<Result<Vec<_>>>()
+        .collect()
 }
 
 #[part_one]
