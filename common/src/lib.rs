@@ -4,6 +4,7 @@ pub use color_eyre;
 pub use color_eyre::{Result, eyre::OptionExt};
 pub use inventory;
 pub use itertools::Itertools;
+pub use itertools::*;
 pub use std::str::Lines;
 
 use reqwest::blocking::Client;
