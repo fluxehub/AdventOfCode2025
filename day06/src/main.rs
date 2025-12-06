@@ -1,17 +1,11 @@
 use aoc::*;
 
-// I really need a way to specify when no parse function is needed
-#[parse]
-fn parse_math(input: &str) -> Vec<String> {
-    input.lines().map(|line| line.to_string()).collect()
-}
-
 #[part_one]
-fn add_problems(input: &[String]) -> u64 {
+fn add_problems(input: &str) -> u64 {
     let mut rows = vec![];
     let mut operators = vec![];
 
-    for line in input {
+    for line in input.lines() {
         if !line.trim().chars().next().unwrap().is_numeric() {
             operators = line
                 .split_whitespace()
@@ -38,8 +32,8 @@ fn add_problems(input: &[String]) -> u64 {
 }
 
 #[part_two]
-fn add_cephalopod_format(input: &[String]) -> u64 {
-    let mut lines: Vec<Vec<char>> = input.iter().map(|line| line.chars().collect()).collect();
+fn add_cephalopod_format(input: &str) -> u64 {
+    let mut lines: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
     // Extend all vecs to be the same length
     let max_len = lines.iter().map(|row| row.len()).max().unwrap();
     for row in &mut lines {

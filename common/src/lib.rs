@@ -58,6 +58,19 @@ pub struct AocPart {
 
 inventory::collect!(AocPart);
 
+/// Default parse implementation for when no #[parse] is defined.
+/// Local definitions from #[parse] will shadow these via wildcard import.
+pub mod __aoc_defaults {
+    use std::sync::OnceLock;
+
+    pub static __PARSED_DATA: OnceLock<String> = OnceLock::new();
+
+    // Dummy parse function for when no #[parse] is defined
+    pub fn __parse_data(text: &str) {
+        __PARSED_DATA.set(text.to_string()).unwrap();
+    }
+}
+
 pub fn __run_day() {
     let parts = inventory::iter::<AocPart>
         .into_iter()
@@ -70,6 +83,10 @@ pub fn __run_day() {
 #[macro_export]
 macro_rules! aoc_day {
     ($day:expr) => {
+        // Wildcard import allows local #[parse] definitions to shadow these defaults
+        #[allow(unused_imports)]
+        use aoc::__aoc_defaults::*;
+
         fn main() -> Result<()> {
             color_eyre::install()?;
             __parse_data(&aoc::__get_input($day)?);
@@ -78,6 +95,10 @@ macro_rules! aoc_day {
         }
     };
     ($day:expr, $input:expr) => {
+        // Wildcard import allows local #[parse] definitions to shadow these defaults
+        #[allow(unused_imports)]
+        use aoc::__aoc_defaults::*;
+
         fn main() -> Result<()> {
             color_eyre::install()?;
             __parse_data(&$input);
