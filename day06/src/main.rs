@@ -1,38 +1,46 @@
-use aoc::*;
+use aoc::{color_eyre::eyre::bail, *};
 
 #[part_one]
-fn add_problems(input: &str) -> u64 {
+fn add_problems(input: &str) -> Result<u64> {
     let mut rows = vec![];
     let mut operators = vec![];
 
     for line in input.lines() {
-        if !line.trim().chars().next().unwrap().is_numeric() {
+        if !line
+            .trim()
+            .chars()
+            .next()
+            .ok_or_eyre("Empty line")?
+            .is_numeric()
+        {
             operators = line
                 .split_whitespace()
-                .map(|op| match op {
-                    "+" => |a, b| a + b,
-                    "*" => |a, b| a * b,
-                    a => panic!("Invalid operator {}", a),
+                .map(|op| -> Result<fn(u64, u64) -> u64> {
+                    match op {
+                        "+" => Ok(|a, b| a + b),
+                        "*" => Ok(|a, b| a * b),
+                        a => bail!("Invalid operator {}", a),
+                    }
                 })
-                .collect();
+                .collect::<Result<Vec<_>>>()?;
         } else {
             rows.push(
                 line.split_whitespace()
-                    .map(|s| s.parse::<u64>().unwrap())
-                    .collect(),
+                    .map(|s| s.parse::<u64>())
+                    .collect::<Result<Vec<_>, _>>()?,
             );
         }
     }
 
-    utils::transpose(rows)
+    Ok(utils::transpose(rows)
         .into_iter()
         .zip(operators)
         .map(|(col, op)| col.iter().copied().reduce(op).unwrap())
-        .sum()
+        .sum())
 }
 
 #[part_two]
-fn add_cephalopod_format(input: &str) -> u64 {
+fn add_cephalopod_format(input: &str) -> Result<u64> {
     let mut lines: Vec<Vec<char>> = input.lines().map(|line| line.chars().collect()).collect();
     // Extend all vecs to be the same length
     let max_len = lines.iter().map(|row| row.len()).max().unwrap();
@@ -48,19 +56,16 @@ fn add_cephalopod_format(input: &str) -> u64 {
         .split(|s| s.trim().is_empty())
         .map(|problem| {
             // Op is the last char of the first line
-            let op = match problem[0].chars().last().unwrap() {
-                '+' => |a, b| a + b,
-                '*' => |a, b| a * b,
-                _ => panic!("Invalid operator"),
+            let op = match problem[0].chars().last().ok_or_eyre("Empty row")? {
+                '+' => |a: u64, b| a + b,
+                '*' => |a: u64, b| a * b,
+                c => bail!("Invalid operator: {}", c),
             };
-            let first_row = problem[0][..problem[0].len() - 1]
-                .trim()
-                .parse::<u64>()
-                .unwrap();
+            let first_row = problem[0][..problem[0].len() - 1].trim().parse::<u64>()?;
             problem[1..]
                 .iter()
-                .map(|s| s.trim().parse::<u64>().unwrap())
-                .fold(first_row, op)
+                .map(|s| s.trim().parse::<u64>())
+                .try_fold(first_row, |acc, n| Ok(op(acc, n?)))
         })
         .sum()
 }

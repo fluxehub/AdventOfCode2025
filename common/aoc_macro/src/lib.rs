@@ -164,6 +164,20 @@ fn create_part_definition(part: u32, item: TokenStream) -> TokenStream {
         quote! { #fn_name(#(&data.#indices),*) }
     };
 
+    // Handle Result return types
+    let return_type = match &input.sig.output {
+        syn::ReturnType::Default => ReturnType::Plain(quote! { () }),
+        syn::ReturnType::Type(_, ty) => get_return_type(ty),
+    };
+
+    let get_result = match return_type {
+        ReturnType::Plain(_) => quote! { let result = #fn_call; },
+        ReturnType::Result(_) => {
+            let err_msg = format!("Part {} failed", part);
+            quote! { let result = #fn_call.expect(#err_msg); }
+        }
+    };
+
     let expanded = quote! {
         #fn_vis #fn_sig {
             #fn_block
@@ -171,7 +185,7 @@ fn create_part_definition(part: u32, item: TokenStream) -> TokenStream {
 
         fn #wrapper_name() {
             let data = __PARSED_DATA.get().unwrap();
-            let result = #fn_call;
+            #get_result
             println!("Part {}: {}", #part_literal, result);
         }
 
