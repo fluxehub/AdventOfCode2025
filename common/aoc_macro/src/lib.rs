@@ -154,6 +154,16 @@ fn create_part_definition(part: u32, item: TokenStream) -> TokenStream {
 
     let part_literal = Literal::u32_unsuffixed(part);
 
+    // Destructure tuples into individual function args
+    let param_count = input.sig.inputs.len();
+
+    let fn_call = if param_count <= 1 {
+        quote! { #fn_name(data) }
+    } else {
+        let indices = (0..param_count).map(syn::Index::from);
+        quote! { #fn_name(#(&data.#indices),*) }
+    };
+
     let expanded = quote! {
         #fn_vis #fn_sig {
             #fn_block
@@ -161,7 +171,7 @@ fn create_part_definition(part: u32, item: TokenStream) -> TokenStream {
 
         fn #wrapper_name() {
             let data = __PARSED_DATA.get().unwrap();
-            let result = #fn_name(data);
+            let result = #fn_call;
             println!("Part {}: {}", #part_literal, result);
         }
 

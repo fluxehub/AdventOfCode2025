@@ -24,14 +24,12 @@ fn parse_ingredients(input: &str) -> Result<(RangeInclusiveSet<u64>, Vec<u64>)> 
 }
 
 #[part_one]
-fn count_fresh_ingredients(input: &(RangeInclusiveSet<u64>, Vec<u64>)) -> usize {
-    let (ranges, ingredients) = input;
+fn count_fresh_ingredients(ranges: &RangeInclusiveSet<u64>, ingredients: &[u64]) -> usize {
     ingredients.iter().filter(|i| ranges.contains(i)).count()
 }
 
 #[part_two]
-fn count_all_fresh_ingredients(input: &(RangeInclusiveSet<u64>, Vec<u64>)) -> usize {
-    let (ranges, _) = input;
+fn count_all_fresh_ingredients(ranges: &RangeInclusiveSet<u64>, _ingredients: &[u64]) -> usize {
     ranges.iter().map(|r| r.try_len().unwrap()).sum()
 }
 
