@@ -183,10 +183,10 @@ fn create_part_definition(part: u32, item: TokenStream) -> TokenStream {
             #fn_block
         }
 
-        fn #wrapper_name() {
+        fn #wrapper_name() -> String {
             let data = __PARSED_DATA.get().unwrap();
             #get_result
-            println!("Part {}: {}", #part_literal, result);
+            result.to_string()
         }
 
         inventory::submit! {

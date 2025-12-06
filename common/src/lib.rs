@@ -53,7 +53,7 @@ pub fn __get_input(day: u32) -> Result<String> {
 
 pub struct AocPart {
     pub part: u8,
-    pub func: fn(),
+    pub func: fn() -> String,
 }
 
 inventory::collect!(AocPart);
@@ -72,12 +72,17 @@ pub mod __aoc_defaults {
 }
 
 pub fn __run_day() {
-    let parts = inventory::iter::<AocPart>
-        .into_iter()
-        .sorted_by_key(|p| p.part);
-    for part in parts {
-        (part.func)();
-    }
+    std::thread::scope(|s| {
+        let handles: Vec<_> = inventory::iter::<AocPart>
+            .into_iter()
+            .sorted_by_key(|p| p.part)
+            .map(|part| (part.part, s.spawn(|| (part.func)())))
+            .collect();
+
+        for (part, handle) in handles {
+            println!("Part {}: {}", part, handle.join().unwrap());
+        }
+    });
 }
 
 #[macro_export]
