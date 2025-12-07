@@ -63,6 +63,8 @@ fn solve_part_one(input: &str) -> i32 // Can be any impl Display type {
 aoc_day!(1);
 ```
 
+`aoc::*` gives the required macros and types for the solution, as well as some useful utilities and crates (`color-eyre`, `itertools`, `aoc::utils`)
+
 ### Parsing
 
 Use the `#[parse]` attribute to transform input before it reaches your part functions:
@@ -85,7 +87,7 @@ Parse modes:
 - `#[parse(line)]` - Called for each line, results collected into `Vec<T>`
 - `#[parse(lines)]` - Receives a `Lines` iterator
 
-Parse functions can return `Result<T>` for fallible parsing:
+Parse functions can return an eyre `Result<T>` for fallible parsing:
 
 ```rust
 #[parse(line)]
