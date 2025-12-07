@@ -82,19 +82,18 @@ fn count_beam_splits(_start: &NodeIndex, _end: &NodeIndex, manifold: &Manifold) 
 
 #[part_two]
 fn count_all_possible_paths(start: &NodeIndex, end: &NodeIndex, manifold: &Manifold) -> usize {
-    let topological_order = petgraph::algo::toposort(manifold, None).unwrap();
-    let mut dp: HashMap<NodeIndex, usize> = manifold
-        .node_indices()
-        .map(|node| (node, if node == *start { 1 } else { 0 }))
-        .collect();
+    // Don't need to topo sort because graph is built in-order
+    let mut dp = vec![0; manifold.node_count()];
+    dp[start.index()] = 1;
 
-    for node in topological_order {
+    for node in manifold.node_indices() {
+        let num_paths = dp[node.index()];
         for neighbor in manifold.neighbors_directed(node, petgraph::Direction::Outgoing) {
-            *dp.get_mut(&neighbor).unwrap() += dp[&node];
+            dp[neighbor.index()] += num_paths;
         }
     }
 
-    dp[end]
+    dp[end.index()]
 }
 
 aoc_day!(7);
