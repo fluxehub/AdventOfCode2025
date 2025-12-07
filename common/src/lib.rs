@@ -1,7 +1,7 @@
 // Re-export some common libs and imports
 pub use aoc_macro::{parse, part_one, part_two};
 pub use color_eyre;
-pub use color_eyre::{Result, eyre::OptionExt};
+pub use color_eyre::{Result, eyre::OptionExt, eyre::bail};
 pub use inventory;
 pub use itertools::Itertools;
 pub use itertools::*;

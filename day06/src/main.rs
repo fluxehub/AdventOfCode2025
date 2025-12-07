@@ -1,4 +1,4 @@
-use aoc::{color_eyre::eyre::bail, *};
+use aoc::*;
 
 fn parse_op(c: char) -> Result<fn(u64, u64) -> u64> {
     match c {
