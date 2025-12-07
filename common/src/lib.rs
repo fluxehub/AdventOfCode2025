@@ -2,6 +2,7 @@
 pub use aoc_macro::{parse, part_one, part_two};
 pub use color_eyre;
 pub use color_eyre::{Result, eyre::OptionExt, eyre::bail};
+pub use criterion;
 pub use inventory;
 pub use itertools::Itertools;
 pub use itertools::*;
@@ -30,6 +31,15 @@ pub mod utils {
 }
 
 pub fn __get_input(day: u32) -> Result<String> {
+    // Check for --example flag
+    let use_example = std::env::args().any(|arg| arg == "--example");
+
+    if use_example {
+        let example_path = format!(".input/day{day}_example");
+        return std::fs::read_to_string(&example_path)
+            .map_err(|e| color_eyre::eyre::eyre!("Failed to read example input: {}", e));
+    }
+
     // Try and load from .input/{day}
     if let Ok(input) = std::fs::read_to_string(format!(".input/day{day}")) {
         return Ok(input);
@@ -58,6 +68,13 @@ pub struct AocPart {
 
 inventory::collect!(AocPart);
 
+pub struct AocBench {
+    pub part: u8,
+    pub func: fn(&str) -> String,
+}
+
+inventory::collect!(AocBench);
+
 /// Default parse implementation for when no #[parse] is defined.
 /// Local definitions from #[parse] will shadow these via wildcard import.
 pub mod __aoc_defaults {
@@ -65,9 +82,13 @@ pub mod __aoc_defaults {
 
     pub static __PARSED_DATA: OnceLock<String> = OnceLock::new();
 
-    // Dummy parse function for when no #[parse] is defined
+    /// Returns parsed data (can be called multiple times, for benchmarks)
+    pub fn __do_parse(text: &str) -> String {
+        text.to_string()
+    }
+
     pub fn __parse_data(text: &str) {
-        __PARSED_DATA.set(text.to_string()).unwrap();
+        __PARSED_DATA.set(__do_parse(text)).unwrap();
     }
 }
 
@@ -85,28 +106,58 @@ pub fn __run_day() {
     });
 }
 
+pub fn __run_benchmarks(day: u32, input: &str) {
+    use criterion::Criterion;
+
+    let mut criterion = Criterion::default().configure_from_args();
+
+    for bench in inventory::iter::<AocBench>
+        .into_iter()
+        .sorted_by_key(|b| b.part)
+    {
+        let name = format!("day{:02} part {}", day, bench.part);
+        criterion.bench_function(&name, |b| {
+            b.iter(|| (bench.func)(std::hint::black_box(input)))
+        });
+    }
+
+    criterion.final_summary();
+}
+
 #[macro_export]
 macro_rules! aoc_day {
     ($day:expr) => {
-        // Wildcard import allows local #[parse] definitions to shadow these defaults
         #[allow(unused_imports)]
         use aoc::__aoc_defaults::*;
 
         fn main() -> Result<()> {
+            let input = aoc::__get_input($day)?;
+
+            if std::env::args().any(|arg| arg == "--bench") {
+                aoc::__run_benchmarks($day, &input);
+                return Ok(());
+            }
+
             color_eyre::install()?;
-            __parse_data(&aoc::__get_input($day)?);
+            __parse_data(&input);
             aoc::__run_day();
             Ok(())
         }
     };
     ($day:expr, $input:expr) => {
-        // Wildcard import allows local #[parse] definitions to shadow these defaults
         #[allow(unused_imports)]
         use aoc::__aoc_defaults::*;
 
         fn main() -> Result<()> {
+            let input: &str = &$input;
+
+            if std::env::args().any(|arg| arg == "--bench") {
+                aoc::__run_benchmarks($day, input);
+                return Ok(());
+            }
+
             color_eyre::install()?;
-            __parse_data(&$input);
+            __parse_data(input);
             aoc::__run_day();
             Ok(())
         }

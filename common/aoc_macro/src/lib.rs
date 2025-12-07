@@ -108,18 +108,17 @@ pub fn parse(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let parse_call = create_parse_call(fn_name, &parse_type, &return_type);
 
-    let get_data = match return_type {
-        ReturnType::Plain(_) => quote! { let data = #parse_call },
-        ReturnType::Result(_) => {
-            quote! { let data = #parse_call.expect("Unable to parse input") }
-        }
-    };
-
     let inner_return_type = return_type.inner_type();
 
     let parsed_data_type = match parse_type {
         ParseType::Line => quote! { Vec<#inner_return_type> },
         _ => quote! { #inner_return_type },
+    };
+
+    // For __do_parse, always unwrap Result types
+    let do_parse_body = match &return_type {
+        ReturnType::Plain(_) => quote! { #parse_call },
+        ReturnType::Result(_) => quote! { #parse_call.expect("Unable to parse input") },
     };
 
     let expanded = quote! {
@@ -129,8 +128,13 @@ pub fn parse(attr: TokenStream, item: TokenStream) -> TokenStream {
             #fn_block
         }
 
+        /// Returns parsed data (can be called multiple times, for benchmarks)
+        fn __do_parse(text: &str) -> #parsed_data_type {
+            #do_parse_body
+        }
+
         fn __parse_data(text: &str) {
-            #get_data;
+            let data = __do_parse(text);
             __PARSED_DATA.set(data).unwrap();
         }
     };
@@ -152,15 +156,22 @@ fn create_part_definition(part: u32, item: TokenStream) -> TokenStream {
         _ => panic!("Invalid part number"),
     };
 
+    let bench_name = match part {
+        1 => Ident::new("__bench_part_one", Span::call_site()),
+        2 => Ident::new("__bench_part_two", Span::call_site()),
+        _ => panic!("Invalid part number"),
+    };
+
     let part_literal = Literal::u32_unsuffixed(part);
 
     // Destructure tuples into individual function args
+    // In both cases, `data` is a reference (wrapper: from get(), bench: we bind as &)
     let param_count = input.sig.inputs.len();
 
     let fn_call = if param_count <= 1 {
         quote! { #fn_name(data) }
     } else {
-        let indices = (0..param_count).map(syn::Index::from);
+        let indices: Vec<_> = (0..param_count).map(syn::Index::from).collect();
         quote! { #fn_name(#(&data.#indices),*) }
     };
 
@@ -170,12 +181,23 @@ fn create_part_definition(part: u32, item: TokenStream) -> TokenStream {
         syn::ReturnType::Type(_, ty) => get_return_type(ty),
     };
 
-    let get_result = match return_type {
+    let get_result = match &return_type {
         ReturnType::Plain(_) => quote! { let result = #fn_call; },
         ReturnType::Result(_) => {
             let err_msg = format!("Part {} failed", part);
             quote! { let result = #fn_call.expect(#err_msg); }
         }
+    };
+
+    let bench_result = match &return_type {
+        ReturnType::Plain(_) => quote! {
+            let data = &__do_parse(input);
+            #fn_call.to_string()
+        },
+        ReturnType::Result(_) => quote! {
+            let data = &__do_parse(input);
+            #fn_call.unwrap().to_string()
+        },
     };
 
     let expanded = quote! {
@@ -189,10 +211,22 @@ fn create_part_definition(part: u32, item: TokenStream) -> TokenStream {
             result.to_string()
         }
 
+        /// Benchmark entry point - takes raw input, returns result as string
+        pub fn #bench_name(input: &str) -> String {
+            #bench_result
+        }
+
         inventory::submit! {
             aoc::AocPart {
                 part: #part_literal,
                 func: #wrapper_name,
+            }
+        }
+
+        inventory::submit! {
+            aoc::AocBench {
+                part: #part_literal,
+                func: #bench_name,
             }
         }
     };
