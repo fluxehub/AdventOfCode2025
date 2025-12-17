@@ -1,0 +1,10 @@
+[package]
+name = "day08"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aoc = { path = "../common" }
+kiddo = "5.2.3"
+ordered-float = "5.1.0"
+union-find = "0.4.3"

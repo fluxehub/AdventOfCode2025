@@ -31,17 +31,24 @@ pub mod utils {
 }
 
 pub fn __get_input(day: u32) -> Result<String> {
+    // Use workspace root for cache (where Cargo.toml with [workspace] lives)
+    let cache_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("common crate should be in workspace")
+        .join(".input");
+
     // Check for --example flag
     let use_example = std::env::args().any(|arg| arg == "--example");
 
     if use_example {
-        let example_path = format!(".input/day{day}_example");
+        let example_path = cache_dir.join(format!("day{day}_example"));
         return std::fs::read_to_string(&example_path)
             .map_err(|e| color_eyre::eyre::eyre!("Failed to read example input: {}", e));
     }
 
     // Try and load from .input/{day}
-    if let Ok(input) = std::fs::read_to_string(format!(".input/day{day}")) {
+    let cache_path = cache_dir.join(format!("day{day}"));
+    if let Ok(input) = std::fs::read_to_string(&cache_path) {
         return Ok(input);
     }
 
@@ -54,8 +61,8 @@ pub fn __get_input(day: u32) -> Result<String> {
         .send()?
         .text()?;
 
-    std::fs::create_dir_all(".input")?;
-    let mut file = File::create(format!(".input/day{day}"))?;
+    std::fs::create_dir_all(&cache_dir)?;
+    let mut file = File::create(&cache_path)?;
     file.write_all(input.as_bytes())?;
 
     Ok(input)
@@ -108,8 +115,11 @@ pub fn __run_day() {
 
 pub fn __run_benchmarks(day: u32, input: &str) {
     use criterion::Criterion;
+    use std::time::Duration;
 
-    let mut criterion = Criterion::default().configure_from_args();
+    let mut criterion = Criterion::default()
+        .measurement_time(Duration::from_secs(10))
+        .configure_from_args();
 
     for bench in inventory::iter::<AocBench>
         .into_iter()
