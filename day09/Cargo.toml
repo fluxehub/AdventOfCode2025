@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 aoc = { path = "../common" }
 geo = "0.32.0"
+rayon = "1.11.0"

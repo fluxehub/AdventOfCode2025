@@ -1,5 +1,6 @@
 use aoc::*;
 use geo::{Coord, Covers, LineString, Polygon, Rect, coord};
+use rayon::prelude::*;
 
 // I was gonna hand roll my own geo (there's some really cool optimizations you can do since it's all 90 degree angles)
 // but the edge cases we're too annoying to deal with
@@ -33,7 +34,8 @@ fn find_largest_area_in_polygon(points: &[Coord]) -> u64 {
         &find_all_boxes(points)
             .sorted_by_key(rect_area)
             .rev()
-            .find(|r| polygon.covers(r))
+            .par_bridge()
+            .find_first(|r| polygon.covers(r))
             .unwrap(),
     )
 }
